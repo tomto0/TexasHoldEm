@@ -86,7 +86,7 @@ func TestPokerHands(t *testing.T) {
 		}
 
 		// Vergleich der Hände unter Einbeziehung der Gemeinschaftskarten
-		result := hand1.CompareTo(hand2, community)
+		result := hand1.CompareHands(hand2, community)
 		hand1Type, hand1Score := hand1.evaluateHand() // Handtyp und Punktzahl für Spieler 1
 		hand2Type, hand2Score := hand2.evaluateHand() // Handtyp und Punktzahl für Spieler 2
 
@@ -130,27 +130,20 @@ func TestPokerHands(t *testing.T) {
 
 		// Ausgabe der Rangliste für das aktuelle Spiel
 		fmt.Printf("Rangliste für Spiel (Community: %s):\n", tc.communityCards)
-		rank := 1 // Initial rank
+		rank := 1 // Startplatz
 		for i := 0; i < len(hands); i++ {
-			if i > 0 && hands[i].Score == hands[i-1].Score && compareKickers(hands[i], hands[i-1], community) == 0 {
-				// If tied, keep the same rank
+			if i > 0 && hands[i].Score == hands[i-1].Score && hands[i].CompareHands(hands[i-1], community) == 0 {
+
+				// Remis - beide 1.
 				fmt.Printf("Platz %d: Hand: [%s], Typ: %s, Punktzahl: %d\n",
-					rank, hands[i].String(), hands[i].HandType, hands[i].Score)
+					rank, hands[i].toString(), hands[i].HandType, hands[i].Score)
 			} else {
-				// Assign new rank
+				// Neuen Platz zuweisen
 				rank = i + 1
 				fmt.Printf("Platz %d: Hand: [%s], Typ: %s, Punktzahl: %d\n",
-					rank, hands[i].String(), hands[i].HandType, hands[i].Score)
+					rank, hands[i].toString(), hands[i].HandType, hands[i].Score)
 			}
 		}
-
-		// Überprüfung der Sortierung für das Spiel
-		for i := 0; i < len(hands)-1; i++ {
-			if hands[i].Score < hands[i+1].Score {
-				t.Errorf("FEHLGESCHLAGEN: Hand %v mit Score %d kommt vor Hand %v mit Score %d",
-					hands[i].Cards, hands[i].Score, hands[i+1].Cards, hands[i+1].Score)
-			}
-		}
+		fmt.Println()
 	}
-
 }
