@@ -7,7 +7,7 @@ import (
 
 type Hand struct {
 	Cards []Card
-	Score int
+	Score int // New field to store the score of the hand
 }
 
 var valueMap = map[byte]int{
@@ -23,13 +23,13 @@ var suitMap = map[rune]int{
 }
 
 func parseHand(input string) Hand {
-	parts := strings.Fields(input) // Split input by spaces
+	parts := strings.Fields(input)
 	cards := []Card{}
 	for _, part := range parts {
-		if part == "-" { // Skip placeholders
+		if part == "-" {
 			continue
 		}
-		if len(part) != 2 { // Check if each card is exactly 2 characters long
+		if len(part) != 2 {
 			panic("Invalid card format: " + part)
 		}
 		value, ok := valueMap[part[1]]
@@ -44,143 +44,203 @@ func parseHand(input string) Hand {
 	return Hand{Cards: cards}
 }
 
-func (h Hand) isFlush() bool {
-	suit := h.Cards[0].Suit
-	for _, card := range h.Cards {
-		if card.Suit != suit {
-			return false
-		}
-	}
-	return true
-}
-
-func (h Hand) isStraight() bool {
-	values := extractCardValues(h)
-	sort.Ints(values)
-
-	// Regular straight check
-	isRegularStraight := true
-	for i := 1; i < len(values); i++ {
-		if values[i] != values[i-1]+1 {
-			isRegularStraight = false
-			break
-		}
-	}
-
-	// Ace-low straight check
-	isAceLowStraight := values[0] == 2 && values[1] == 3 && values[2] == 4 && values[3] == 5 && values[len(values)-1] == 14
-
-	return isRegularStraight || isAceLowStraight
-}
-
-func (h Hand) countValues() [4][13]int {
-	var handArray [4][13]int
+func (h Hand) countValues() [5][13]int {
+	var handArray [5][13]int
 	for _, card := range h.Cards {
 		suitIndex := suitMap[card.Suit]
 		valueIndex := card.Value - 2
 		handArray[suitIndex][valueIndex]++
+		handArray[4][valueIndex]++ // Add to totals row
 	}
 	return handArray
 }
 
-func (h Hand) evaluateHand() string {
-	isFlush := h.isFlush()
-	isStraight := h.isStraight()
+func (h Hand) isFlush() bool {
 	counts := h.countValues()
-
-	// Check for Straight Flush
-	if isFlush && isStraight {
-		return "Straight Flush"
-	}
-
-	// Check other hand types
-	if containsCount(counts, 4) {
-		return "Four of a Kind"
-	}
-	if containsCount(counts, 3) && containsCount(counts, 2) {
-		return "Full House"
-	}
-	if isFlush {
-		return "Flush"
-	}
-	if isStraight {
-		return "Straight"
-	}
-	if containsCount(counts, 3) {
-		return "Three of a Kind"
-	}
-	if countPairs(counts) == 2 {
-		return "Two Pairs"
-	}
-	if containsCount(counts, 2) {
-		return "One Pair"
-	}
-	return "High Card"
-}
-
-func containsCount(counts [4][13]int, n int) bool {
-	for _, row := range counts {
-		for _, count := range row {
-			if count == n {
-				return true
-			}
+	for row := 0; row < 4; row++ {
+		rowSum := 0
+		for col := 0; col < 13; col++ {
+			rowSum += counts[row][col]
+		}
+		if rowSum >= 5 {
+			return true
 		}
 	}
 	return false
 }
 
-func countPairs(counts [4][13]int) int {
-	pairs := 0
-	for _, row := range counts {
-		for _, count := range row {
-			if count == 2 {
-				pairs++
+func (h Hand) isStraight() bool {
+	counts := h.countValues()
+	consecutive := 0
+
+	for col := 0; col < 13; col++ {
+		if counts[4][col] > 0 {
+			consecutive++
+			if consecutive == 5 {
+				return true
 			}
+		} else {
+			consecutive = 0
+		}
+	}
+
+	// Special case: Ace-low Straight (A, 2, 3, 4, 5)
+	if counts[4][12] > 0 && counts[4][0] > 0 && counts[4][1] > 0 &&
+		counts[4][2] > 0 && counts[4][3] > 0 {
+		return true
+	}
+
+	return false
+}
+
+func (h Hand) isFourOfAKind() bool {
+	counts := h.countValues()
+	for col := 0; col < 13; col++ {
+		if counts[4][col] == 4 {
+			return true
+		}
+	}
+	return false
+}
+
+func (h Hand) isFullHouse() bool {
+	counts := h.countValues()
+	hasThree := false
+	hasPair := false
+
+	for col := 0; col < 13; col++ {
+		if counts[4][col] == 3 {
+			hasThree = true
+		} else if counts[4][col] == 2 {
+			hasPair = true
+		}
+	}
+
+	return hasThree && hasPair
+}
+
+func (h Hand) isThreeOfAKind() bool {
+	counts := h.countValues()
+	for col := 0; col < 13; col++ {
+		if counts[4][col] == 3 {
+			return true
+		}
+	}
+	return false
+}
+
+func (h Hand) isTwoPairs() bool {
+	counts := h.countValues()
+	pairCount := 0
+
+	for col := 0; col < 13; col++ {
+		if counts[4][col] == 2 {
+			pairCount++
+		}
+	}
+
+	return pairCount >= 2
+}
+
+func (h Hand) isOnePair() bool {
+	counts := h.countValues()
+	for col := 0; col < 13; col++ {
+		if counts[4][col] == 2 {
+			return true
+		}
+	}
+	return false
+}
+
+func (h Hand) containsHighestStraight() bool {
+	counts := h.countValues()
+	return counts[4][8] >= 1 && counts[4][9] >= 1 && counts[4][10] >= 1 &&
+		counts[4][11] >= 1 && counts[4][12] >= 1
+}
+
+func (h Hand) isStraightFlush() bool {
+	return h.isFlush() && h.isStraight()
+}
+
+func (h Hand) evaluateHand() (string, int) {
+	if h.isStraightFlush() {
+		return "Straight Flush", 8
+	}
+	if h.isFourOfAKind() {
+		return "Four of a Kind", 7
+	}
+	if h.isFullHouse() {
+		return "Full House", 6
+	}
+	if h.isFlush() {
+		return "Flush", 5
+	}
+	if h.isStraight() {
+		return "Straight", 4
+	}
+	if h.isThreeOfAKind() {
+		return "Three of a Kind", 3
+	}
+	if h.isTwoPairs() {
+		return "Two Pairs", 2
+	}
+	if h.isOnePair() {
+		return "One Pair", 1
+	}
+	return "High Card", 0
+}
+
+func compareKickers(h1, h2 Hand, community Hand) int {
+	combined1 := append(h1.Cards, community.Cards...)
+	combined2 := append(h2.Cards, community.Cards...)
+
+	counts1 := h1.countValues()
+	counts2 := h2.countValues()
+
+	// Handle tie-breaking for Two Pairs
+	if h1.isTwoPairs() && h2.isTwoPairs() {
+		pairs1 := findPairs(counts1)
+		pairs2 := findPairs(counts2)
+
+		// Compare the higher pair
+		if pairs1[0] > pairs2[0] {
+			return 1
+		} else if pairs1[0] < pairs2[0] {
+			return -1
+		}
+
+		// Compare the second pair
+		if pairs1[1] > pairs2[1] {
+			return 1
+		} else if pairs1[1] < pairs2[1] {
+			return -1
+		}
+
+		// Compare the kicker
+		return compareHighestRemaining(combined1, combined2)
+	}
+
+	// Default tie-breaking for other hands
+	return compareHighestRemaining(combined1, combined2)
+}
+
+func findPairs(counts [5][13]int) []int {
+	pairs := []int{}
+	for col := 12; col >= 0; col-- {
+		if counts[4][col] == 2 {
+			pairs = append(pairs, col+2)
 		}
 	}
 	return pairs
 }
 
-func (h Hand) CompareTo(other Hand, community Hand) int {
-	hand1Type := h.evaluateHand()
-	hand2Type := other.evaluateHand()
-
-	handRanks := map[string]int{
-		"Royal Flush":     10,
-		"Straight Flush":  9,
-		"Four of a Kind":  8,
-		"Full House":      7,
-		"Flush":           6,
-		"Straight":        5,
-		"Three of a Kind": 4,
-		"Two Pairs":       3,
-		"One Pair":        2,
-		"High Card":       1,
-	}
-
-	// Compare hand types based on ranking
-	if handRanks[hand1Type] > handRanks[hand2Type] {
-		return 1
-	} else if handRanks[hand1Type] < handRanks[hand2Type] {
-		return -1
-	}
-
-	// If hand types are equal, compare kickers
-	return compareKickers(h, other, community)
-}
-
-func compareKickers(h1, h2 Hand, community Hand) int {
-	// Combine player hands with community cards
-	combined1 := append(h1.Cards, community.Cards...)
-	combined2 := append(h2.Cards, community.Cards...)
-
-	// Extract and sort card values
+func compareHighestRemaining(combined1, combined2 []Card) int {
 	values1 := extractCardValues(Hand{Cards: combined1})
 	values2 := extractCardValues(Hand{Cards: combined2})
+
 	sort.Sort(sort.Reverse(sort.IntSlice(values1)))
 	sort.Sort(sort.Reverse(sort.IntSlice(values2)))
 
-	// Compare sorted values card-by-card
 	for i := 0; i < len(values1) && i < len(values2); i++ {
 		if values1[i] > values2[i] {
 			return 1
@@ -188,43 +248,29 @@ func compareKickers(h1, h2 Hand, community Hand) int {
 			return -1
 		}
 	}
-
-	// If all values are equal, return 0 for a tie
 	return 0
 }
 
-// Helper to compare card values
-func compareCardValues(h1, h2 Hand) int {
-	// Extract the card values and sort them
-	h1Values := extractCardValues(h1)
-	h2Values := extractCardValues(h2)
-
-	// Compare highest values, then second highest, etc.
-	for i := 0; i < len(h1Values); i++ {
-		if h1Values[i] > h2Values[i] {
-			return 1
-		} else if h1Values[i] < h2Values[i] {
-			return -1
-		}
-	}
-	return 0
-}
-
-// Helper to extract and sort card values for comparison
 func extractCardValues(h Hand) []int {
 	values := make([]int, len(h.Cards))
 	for i, card := range h.Cards {
 		values[i] = card.Value
 	}
-	sort.Sort(sort.Reverse(sort.IntSlice(values))) // Highest to lowest
+	sort.Sort(sort.Reverse(sort.IntSlice(values)))
 	return values
 }
 
-type Hands []Hand
+func (h Hand) CompareTo(other Hand, community Hand) int {
+	_, hand1Score := h.evaluateHand()
+	_, hand2Score := other.evaluateHand()
 
-func (h Hands) Len() int      { return len(h) }
-func (h Hands) Swap(i, j int) { h[i], h[j] = h[j], h[i] }
-func (h Hands) Less(i, j int) bool {
-	community := Hand{} // Placeholder. Use actual community cards as needed.
-	return h[i].CompareTo(h[j], community) > 0
+	// Compare hand scores
+	if hand1Score > hand2Score {
+		return 1
+	} else if hand1Score < hand2Score {
+		return -1
+	}
+
+	// Tie-breaking logic
+	return compareKickers(h, other, community)
 }

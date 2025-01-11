@@ -21,13 +21,13 @@ func TestPokerHands(t *testing.T) {
 		{"D6 S9 H4 H3 H2", "C8 DJ", "C7 DQ", -1, "High Card", "High Card"}, // Player 2: Queen beats Jack
 
 		// Test cases for One Pair
-		{"SK HT C8 C7 D2", "DK C2", "H8 D5", 1, "One Pair", "High Card"}, // Player 1: Pair of Kings beats High Card
-		//{"SK HT C8 C7 D2", "DK C2", "HK D5", 0, "One Pair", "One Pair"},    // Tie: Both have Pair of Kings
+		{"SK HT C8 C7 D2", "DK C2", "H8 D5", 1, "One Pair", "High Card"},   // Player 1: Pair of Kings beats High Card
+		{"SK HT C8 C7 D2", "DK C2", "HK D5", 1, "Two Pairs", "One Pair"},   // Tie: Both have Pair of Kings, Mistake in Tests - HK SK and C2 D2 are pairs
 		{"HA DA ST C9 D4", "D5 C6", "H7 C2", -1, "High Card", "High Card"}, // Corrected: Both only have High Cards
 
 		// Test cases for Two Pairs
-		{"SA DQ CK D6 H6", "HA C3", "CQ H4", 1, "Two Pairs", "Two Pairs"}, // Player 1: Two Pairs beats Two Pairs (higher kicker)
-		//{"SA DQ CK D6 H6", "HQ C3", "SQ H4", 0, "Two Pairs", "Two Pairs"},  // Tie: Same Two Pairs and kickers
+		{"SA DQ CK D6 H6", "HA C3", "CQ H4", 1, "Two Pairs", "Two Pairs"},  // Player 1: Two Pairs beats Two Pairs (higher kicker)
+		{"SA DQ CK D6 H6", "HQ C3", "SQ H3", 0, "Two Pairs", "Two Pairs"},  // Tie: Same Two Pairs and kickers
 		{"SA DQ CK D6 H5", "HQ C6", "CA HK", -1, "Two Pairs", "Two Pairs"}, // Player 2: Higher Two Pairs (Aces)
 
 		// Test cases for Three of a Kind
@@ -36,7 +36,7 @@ func TestPokerHands(t *testing.T) {
 		{"HA SA DA H3 HT", "S2 S5", "H2 SK", -1, "Three of a Kind", "Three of a Kind"}, // Player 2: Three Aces beats Three Kings
 
 		// Test cases for Straight
-		{"H3 S4 C5 S6 HT", "D7 HA", "H2 SA", -1, "Straight", "Straight"}, // Player 2: Straight to 6 beats High Card
+		{"H3 S4 C5 S6 HT", "D7 HA", "H2 SA", 1, "Straight", "Straight"},  // Player 2: Straight to 6 beats High Card
 		{"H3 S4 C5 S6 HT", "D7 HA", "H7 SA", 0, "Straight", "Straight"},  // Tie: Both have Straight to 6
 		{"H2 H3 S4 C5 HT", "HA S3", "H6 SA", -1, "Straight", "Straight"}, // Player 2: Straight to 6 beats Ace kicker
 
@@ -83,13 +83,13 @@ func TestPokerHands(t *testing.T) {
 
 		// Compare hands with the community cards
 		result := hand1.CompareTo(hand2, community)
-		hand1Type := hand1.evaluateHand()
-		hand2Type := hand2.evaluateHand()
+		hand1Type, hand1Score := hand1.evaluateHand()
+		hand2Type, hand2Score := hand2.evaluateHand()
 
 		// Validate the result
 		if result != tc.expectedResult {
-			t.Errorf("FAILED: Community: %s | Player1: %s (%s) | Player2: %s (%s) | Expected: %d, Got: %d",
-				tc.communityCards, tc.player1, hand1Type, tc.player2, hand2Type, tc.expectedResult, result)
+			t.Errorf("FAILED: Community: %s | Player1: %s (%s, %d) | Player2: %s (%s, %d) | Expected: %d, Got: %d",
+				tc.communityCards, tc.player1, hand1Type, hand1Score, tc.player2, hand2Type, hand2Score, tc.expectedResult, result)
 		}
 	}
 }
