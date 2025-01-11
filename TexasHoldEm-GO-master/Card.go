@@ -3,21 +3,22 @@ package main
 import "fmt"
 
 type Card struct {
-	Suit  rune // 'S', 'H', 'D', 'C'
-	Value int  // 2-14 (Ace is 14)
+	Suit  rune // 'S', 'H', 'D', 'C' (Kartenfarben: Pik, Herz, Karo, Kreuz)
+	Value int  // 2-14 (Ass ist 14)
 }
 
+// Gibt die Karte als lesbaren String zurück
 func (c Card) String() string {
 	var suit string
 	switch c.Suit {
 	case 'S':
-		suit = "Spades"
+		suit = "Pik"
 	case 'H':
-		suit = "Hearts"
+		suit = "Herz"
 	case 'D':
-		suit = "Diamonds"
+		suit = "Karo"
 	case 'C':
-		suit = "Clubs"
+		suit = "Kreuz"
 	}
-	return fmt.Sprintf("%d of %s", c.Value, suit)
+	return fmt.Sprintf("%d von %s", c.Value, suit)
 }
