@@ -9,16 +9,20 @@ type Card struct {
 
 // Gibt die Karte als lesbaren String zurück
 func (c Card) String() string {
-	var suit string
-	switch c.Suit {
+	return fmt.Sprintf("%d von %s", c.Value, suitToString(c.Suit))
+}
+
+func suitToString(suit rune) string {
+	switch suit {
 	case 'S':
-		suit = "Pik"
+		return "Pik"
 	case 'H':
-		suit = "Herz"
+		return "Herz"
 	case 'D':
-		suit = "Karo"
+		return "Karo"
 	case 'C':
-		suit = "Kreuz"
+		return "Kreuz"
+	default:
+		return "Unbekannt"
 	}
-	return fmt.Sprintf("%d von %s", c.Value, suit)
 }

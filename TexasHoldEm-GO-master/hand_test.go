@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+	"sort"
 	"testing"
 )
 
@@ -15,6 +17,7 @@ func TestPokerHands(t *testing.T) {
 		expectedType1  string
 		expectedType2  string
 	}{
+
 		// Testfälle für High Card
 		{"D6 S9 H4 S3 C2", "SK CA", "HA SQ", 1, "High Card", "High Card"},  // Spieler 1: Ass-König-Kicker schlägt Ass-Dame
 		{"D6 S9 H4 S3 C2", "SK CA", "HA CK", 0, "High Card", "High Card"},  // Unentschieden: Beide haben Ass-König
@@ -90,6 +93,51 @@ func TestPokerHands(t *testing.T) {
 		if result != tc.expectedResult {
 			t.Errorf("FEHLGESCHLAGEN: Gemeinschaftskarten: %s | Spieler 1: %s (%s, %d) | Spieler 2: %s (%s, %d) | Erwartet: %d, Erhalten: %d",
 				tc.communityCards, tc.player1, hand1Type, hand1Score, tc.player2, hand2Type, hand2Score, tc.expectedResult, result)
+		}
+	}
+
+	var hands HandList
+	for _, tc := range testCases {
+		// Parse der Gemeinschaftskarten (Community Cards)
+		community := parseHand(tc.communityCards)
+
+		// Parse der Hände von Spieler 1 und Spieler 2
+		var hand1, hand2 Hand
+		if tc.player1 == "-" {
+			hand1 = community // Keine Hand für Spieler 1, verwende nur die Gemeinschaftskarten
+		} else {
+			hand1 = parseHand(tc.player1 + " " + tc.communityCards) // Kombiniere Spieler 1 Karten mit den Gemeinschaftskarten
+		}
+		if tc.player2 == "-" {
+			hand2 = community // Keine Hand für Spieler 2, verwende nur die Gemeinschaftskarten
+		} else {
+			hand2 = parseHand(tc.player2 + " " + tc.communityCards) // Kombiniere Spieler 2 Karten mit den Gemeinschaftskarten
+		}
+
+		hand1Type, hand1Score := hand1.evaluateHand() // Handtyp und Punktzahl für Spieler 1
+		hand2Type, hand2Score := hand2.evaluateHand() // Handtyp und Punktzahl für Spieler 2
+
+		// Füge die Hände zur Liste hinzu
+		hands = append(hands, Hand{Cards: hand1.Cards, Score: hand1Score, HandType: hand1Type})
+		hands = append(hands, Hand{Cards: hand2.Cards, Score: hand2Score, HandType: hand2Type})
+
+	}
+
+	// Sortiere die Hände nach Punktzahl (absteigend)
+	sort.Sort(hands)
+
+	// Überprüfen, ob die Liste korrekt sortiert wurde
+	fmt.Println("Sortierte Hände:")
+	for i, hand := range hands {
+		fmt.Printf("Rang %d: Hand: [%s], Typ: %s, Punktzahl: %d\n",
+			i+1, hand.String(), hand.HandType, hand.Score)
+	}
+
+	// Validierung der Sortierung
+	for i := 0; i < len(hands)-1; i++ {
+		if hands[i].Score < hands[i+1].Score {
+			t.Errorf("FEHLGESCHLAGEN: Hand %v mit Score %d kommt vor Hand %v mit Score %d",
+				hands[i].Cards, hands[i].Score, hands[i+1].Cards, hands[i+1].Score)
 		}
 	}
 }

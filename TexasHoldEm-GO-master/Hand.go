@@ -6,8 +6,9 @@ import (
 )
 
 type Hand struct {
-	Cards []Card // Enthält die Karten der Hand
-	Score int    // Speichert die Punktzahl der Hand
+	Cards    []Card // Enthält die Karten der Hand
+	Score    int    // Speichert die Punktzahl der Hand
+	HandType string // Speichert den Handtyp (z.B. "Straight Flush")
 }
 
 // Zuordnung von Zeichen zu Kartenwerten
@@ -33,11 +34,11 @@ func parseHand(input string) Hand {
 			continue
 		}
 		if len(part) != 2 {
-			panic("Invalid card format: " + part)
+			panic("Falsches Format der Karte: " + part)
 		}
 		value, ok := valueMap[part[1]]
 		if !ok {
-			panic("Invalid card value: " + string(part[1]))
+			panic("Falscher Wert  der Karte: " + string(part[1]))
 		}
 		cards = append(cards, Card{
 			Suit:  rune(part[0]),
@@ -141,8 +142,47 @@ func (h Hand) isFullHouse() bool {
 	return hasThree && hasPair
 }
 
+func (h Hand) isRoyalFlush() bool {
+	// Ein Royal Flush ist ein Straight Flush mit den höchsten Karten: 10, J, Q, K, A
+	counts := h.countValues()
+	if counts[4][8] >= 1 && counts[4][9] >= 1 && counts[4][10] >= 1 && counts[4][11] >= 1 && counts[4][12] >= 1 {
+		// Prüfen, ob die Karten dieselbe Farbe haben (Flush)
+		for suit := 0; suit < 4; suit++ {
+			if counts[suit][8] >= 1 && counts[suit][9] >= 1 && counts[suit][10] >= 1 && counts[suit][11] >= 1 && counts[suit][12] >= 1 {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func compareKickers(h1, h2 Hand, community Hand) int {
+	// Kombiniere die Handkarten mit den Gemeinschaftskarten
+	combined1 := append(h1.Cards, community.Cards...)
+	combined2 := append(h2.Cards, community.Cards...)
+
+	// Extrahiere und sortiere die Kartenwerte
+	values1 := extractCardValues(Hand{Cards: combined1})
+	values2 := extractCardValues(Hand{Cards: combined2})
+
+	// Vergleiche die Kartenwerte (höchste zuerst)
+	for i := 0; i < len(values1) && i < len(values2); i++ {
+		if values1[i] > values2[i] {
+			return 1
+		} else if values1[i] < values2[i] {
+			return -1
+		}
+	}
+
+	// Wenn beide Hände gleich sind
+	return 0
+}
+
 // Bewertet die Hand und gibt den Handtyp und die Punktzahl zurück
 func (h Hand) evaluateHand() (string, int) {
+	if h.isRoyalFlush() {
+		return "Royal Flush", 9
+	}
 	if h.isStraightFlush() {
 		return "Straight Flush", 8
 	}
@@ -197,7 +237,7 @@ func extractCardValues(h Hand) []int {
 	for i, card := range h.Cards {
 		values[i] = card.Value
 	}
-	sort.Sort(sort.Reverse(sort.IntSlice(values)))
+	sort.Sort(sort.Reverse(sort.IntSlice(values))) // Absteigend sortieren
 	return values
 }
 
@@ -206,13 +246,38 @@ func (h Hand) CompareTo(other Hand, community Hand) int {
 	_, hand1Score := h.evaluateHand()
 	_, hand2Score := other.evaluateHand()
 
-	// Vergleich der Hand-Punktzahlen
+	// Standardmäßiger Vergleich nach Punktzahl
 	if hand1Score > hand2Score {
 		return 1
 	} else if hand1Score < hand2Score {
 		return -1
 	}
 
-	// Tie-Breaker
-	return compareHighestCards(h, other, community)
+	// Fallback für gleiche Punktzahl: Kartenwert vergleichen
+	return compareKickers(h, other, community)
+}
+
+func (h Hand) String() string {
+	cardStrings := []string{}
+	for _, card := range h.Cards {
+		cardStrings = append(cardStrings, card.String())
+	}
+	return strings.Join(cardStrings, ", ")
+}
+
+// HandList ist ein benutzerdefinierter Typ für eine Liste von 	Händen
+type HandList []Hand
+
+func (hl HandList) Len() int {
+	return len(hl)
+}
+func (hl HandList) Less(i, j int) bool {
+	if hl[i].Score == hl[j].Score {
+		// Tiebreaker logic if scores are equal
+		return hl[i].HandType < hl[j].HandType
+	}
+	return hl[i].Score > hl[j].Score
+}
+func (hl HandList) Swap(i, j int) {
+	hl[i], hl[j] = hl[j], hl[i]
 }
