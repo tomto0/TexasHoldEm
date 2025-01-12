@@ -53,9 +53,9 @@ func (h Hand) countValues() [5][13]int {
 	var handArray [5][13]int
 	for _, card := range h.Cards {
 		suitIndex := suitMap[card.Suit]
-		valueIndex := card.Value - 2
-		handArray[suitIndex][valueIndex]++
-		handArray[4][valueIndex]++ // Zur Summenzeile hinzufügen
+		valueIndex := card.Value - 2       // Wert 2 entspricht Index 0
+		handArray[suitIndex][valueIndex]++ // Zur Kartenfarbzeile hinzufügen
+		handArray[4][valueIndex]++         // Zur Summenzeile hinzufügen
 	}
 	return handArray
 }
