@@ -55,7 +55,7 @@ func (h Hand) countValues() [5][13]int {
 		suitIndex := suitMap[card.Suit]
 		valueIndex := card.Value - 2
 		handArray[suitIndex][valueIndex]++
-		handArray[4][valueIndex]++ // Add to totals row
+		handArray[4][valueIndex]++ // Zur Summenzeile hinzufügen
 	}
 	return handArray
 }
