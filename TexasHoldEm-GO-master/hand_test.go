@@ -147,3 +147,101 @@ func TestPokerHands(t *testing.T) {
 		fmt.Println()
 	}
 }
+
+// Testet ausschließlich den Vergleich der 5 Karten in den Händen der Spieler (basierend auf vorhandenen Daten)
+func TestCompareHandsAll(t *testing.T) {
+	testCases := []struct {
+		hand1          string
+		hand2          string
+		expectedResult int
+	}{
+		// Testfälle für High Card
+		{"CA SK S9 D6 H4", "HA SQ S9 D6 H4", 1},
+		{"D6 CA H4 SK S9", "HA D6 SQ H4 S9", 1},
+		{"CA SK S9 D6 H4", "HA SK S9 D6 H4", 0},
+		{"S9 SK CA D6 H4", "H4 HA S9 D6 SK", 0},
+		{"DQ S9 C7 D6 H4", "HQ S9 C8 D6 H4", -1},
+		{"H4 S9 C7 D6 DQ", "C8 D6 HQ S9 H4", -1},
+
+		// Testfälle für One Pair
+		{"DK SK HT C8 C7", "H8 C8 SK HT C7", 1},
+		{"DK HT C8 C7 SK", "HT H8 SK C7 C8", 1},
+		{"DK SK HT C8 C7", "HK SK HT C8 C7", 0},
+		{"C8 DK SK HT C7", "HK C8 C7 SK HT", 0},
+		{"HA DA ST C9 C6", "HA DA ST C9 H7", -1},
+		{"C6 C9 ST DA HA", "HA DA C9 ST H7", -1},
+
+		// Testfälle für Two Pairs
+		{"HA SA D6 H6 CK", "CQ DQ D6 H6 SA", 1},
+		{"CK D6 H6 HA SA", "CQ DQ SA D6 H6", 1},
+		{"HQ DQ D6 H6 SA", "SQ DQ D6 H6 SA", 0},
+		{"SA HQ DQ D6 H6", "SQ DQ SA D6 H6", 0},
+		{"HQ DQ C6 D6 SA", "CA SA HK CK DQ", -1},
+		{"C6 D6 HQ DQ SA", "DQ HK CK CA SA", -1},
+
+		// Testfälle für Three of a Kind
+		{"HJ SJ SJ SA C8", "D3 H3 C3 SA SJ", 1},
+		{"SA C8 HJ SJ SJ", "D3 SA SJ H3 C3", 1},
+		{"D3 H3 C3 SA SJ", "D3 H3 S3 SA SJ", 0},
+		{"D3 SA H3 SJ C3", "SA D3 H3 S3 SJ", 0},
+		{"HA SA DA HT S5", "HA SA DA SK HT", -1},
+		{"HA SA HT S5 DA", "SK HA SA DA HT", -1},
+
+		// Testfälle für Straight
+		{"H3 S4 C5 S6 D7", "H2 H3 S4 C5 S6", 1},
+		{"S6 D7 H3 S4 C5", "H3 H2 C5 S4 S6", 1},
+		{"H3 S4 C5 S6 D7", "H3 S4 C5 S6 H7", 0},
+		{"C5 S6 D7 H3 S4", "H3 S6 H7 S4 C5", 0},
+		{"HA H2 H3 S4 C5", "H2 H3 S4 C5 H6", 1}, // Straight mit A,2,3,4,5 ist weniger Wert als Straight mit 2,3,4,5,6
+		{"H2 H3 S4 C5 HA", "H3 S4 C5 H6 H2", 1}, // Straight mit A,2,3,4,5 ist weniger Wert als Straight mit 2,3,4,5,6
+
+		// Testfälle für Flush
+		{"D3 D6 DT DK DA", "D3 D6 DT D2 DQ", 1},
+		{"D3 D6 DA DT DK", "D3 DQ D6 DT D2", 1},
+		{"D3 D6 DT DJ DK", "D3 D6 DT DJ DK", 0},
+		{"D6 DT DJ DK D3", "D3 DK D6 DT DJ", 0},
+		{"D3 D6 DT D2 D5", "D3 D6 DT DJ DA", -1},
+		{"D2 D5 D3 D6 DT", "D3 DJ DA D6 DT", -1},
+
+		// Testfälle für Full House
+		{"HQ SQ DQ HT DT", "HQ SQ HT DT CT", 1},
+		{"HQ HT DT SQ DQ", "SQ HT HQ DT CT", 1},
+		{"HA SA DQ HQ SQ", "DA SA CQ HQ SQ", 0},
+		{"DQ HQ SQ HA SA", "DA HQ SQ SA CQ", 0},
+		{"HQ SQ HT DT ST", "HQ SQ CQ HT DT", -1},
+		{"HT DT ST HQ SQ", "HQ HT SQ DT CQ", -1},
+
+		// Testfälle für Four of a Kind
+		{"HT ST CT DT HA", "HT ST CT DT DJ", 1},
+		{"HT HA ST CT DT", "ST CT DT DJ HT", 1},
+		{"S5 D5 C5 H5 HA", "S5 D5 C5 H5 HA", 0},
+		{"HA S5 D5 C5 H5", "S5 D5 C5 H5 HA", 0},
+		{"HT ST CT DT S8", "HT ST CT DT HK", -1},
+		{"CT DT S8 HT ST", "CT DT HK HT ST", -1},
+
+		// Testfälle für Straight Flush
+		{"H3 H4 H5 H6 H7", "H2 H3 H4 H5 H6", 1},
+		{"H3 H4 H5 H7 H6", "H4 H5 H2 H3 H6", 1},
+		{"H3 H4 H5 H6 H7", "H3 H4 H5 H6 H7", 0},
+		{"H7 H6 H4 H3 H5", "H3 H7 H4 H5 H6", 0},
+		{"S6 S7 S8 S9 ST", "S7 S8 S9 ST SJ", -1},
+		{"S6 ST S7 S8 S9", "S7 S8 SJ S9 ST", -1},
+
+		// Testfälle für Royal Flush
+		{"DT DJ DQ DK DA", "DT DJ DQ DK DA", 0},
+	}
+
+	// Für alle Fälle die Spielerhände vergleichen
+	for _, tc := range testCases {
+		hand1 := parseHand(tc.hand1)
+		hand2 := parseHand(tc.hand2)
+
+		// Vergleich der Hände direkt ohne Community Cards
+		result := hand1.CompareHands(hand2, Hand{})
+
+		if result != tc.expectedResult {
+			t.Errorf("FEHLGESCHLAGEN: Hand 1: %s | Hand 2: %s | Erwartet: %d, Erhalten: %d",
+				hand1.toString(), hand2.toString(), tc.expectedResult, result)
+		}
+	}
+}
